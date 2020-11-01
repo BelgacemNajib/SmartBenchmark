@@ -1,22 +1,21 @@
-#include <iostream>
 #include <algorithm>
 #include <execution>
+#include <iostream>
 #include <omp.h>
-#include <vector>
-#include <QFile>
-#include <QVector>
-#include <QHBoxLayout>
-#include <QWidget>
 #include <QDateTime>
+#include <QFile>
+#include <QHBoxLayout>
 #include <QSysInfo>
+#include <QVector>
+#include <QWidget>
+
 #include "plot.h"
 
 plot::plot(QWidget *parent): QMainWindow(parent)
 {
-    setFixedSize(600,300);
+    setMinimumSize(600,300);
     const QString filename  = "benchmark_" + QDateTime::currentDateTime().toString("yyyyMMddhhmmss")  + ".txt";
     file = new QFile(filename);
-
 }
 
 void plot::plotCurves(bool writeInFile){
@@ -48,7 +47,7 @@ void plot::writeFile() {
     }
     headMsg += "\n";
 
-
+    // data
     for( unsigned i = 0;i< data.begin()->second.size(); i++)
     {
         for(auto it = data.begin() ; it != data.end(); it++)
@@ -58,8 +57,6 @@ void plot::writeFile() {
 
         dataMsg += "\n";
     }
-
-
     file->write(headMsg.c_str(), headMsg.size());
     file->write(dataMsg.c_str(), dataMsg.size());
     file->close();
@@ -84,20 +81,20 @@ void plot::computeBenchmarks(std::vector<int> &v){
     // using iterator
     start = now();
     for(auto i = v.begin();i !=  v.end();i++){
-        *i  = 1; // just a simple instruction
+        *i  = 2; // just a simple instruction
     }
     end = now();
     data["Iterator"].push_back(QCPGraphData(size,duration(end - start)));
 
-    // using std for_ech execution parallel
+    // using std for_each execution parallel
     start = now();
-    std::for_each(std::execution::par,v.begin(),v.end(),[](int& i){i=1;});
+    std::for_each(std::execution::par,v.begin(),v.end(),[](int& i){i=3;});
     end = now();
     data["ForEachPar"].push_back(QCPGraphData(size,duration(end - start)));
 
-    // using std for_ech execution sequentiel
+    // using std for_each execution sequentiel
     start = now();
-    std::for_each(v.begin(),v.end(),[](int& i){i=2;});
+    std::for_each(v.begin(),v.end(),[](int& i){i=4;});
     end = now();
     data["ForEachSeq"].push_back(QCPGraphData(size,duration(end - start)));
 
@@ -106,7 +103,7 @@ void plot::computeBenchmarks(std::vector<int> &v){
 #pragma omp parallel
 #pragma omp for
     for(unsigned i = 0;i < size;i++){
-        v[i] = 1;
+        v[i] = 5;
     }
     end = now();
     data["OpenMP"].push_back(QCPGraphData(size,duration(end - start)));
@@ -119,6 +116,8 @@ int plot::duration(std::chrono::duration<long long, std::ratio<1, 1000000000> > 
 void plot::prepareCurves(){
     QCustomPlot* customPlot = new QCustomPlot(this);
     setCentralWidget(customPlot);
+
+    customPlot->axisRect()->insetLayout()->setInsetAlignment(0, Qt::AlignLeft|Qt::AlignTop);
 
     auto dataIter = data.begin();
     unsigned minValue = 10000;
